@@ -98,7 +98,8 @@ layouts to reflect the chosen values.
             onPressed: () {
               demos.forEach(
                 (demo) {
-                  demo.layoutSize = NullableVector2.fromVector2(layoutSize);
+                  demo.layoutSize
+                      .setFrom(NullableVector2.fromVector2(layoutSize));
                 },
               );
             },

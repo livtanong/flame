@@ -1,4 +1,5 @@
 import 'package:flame/components.dart';
+import 'package:flame/experimental.dart';
 import 'package:flame/src/experimental/nullable_vector_2.dart';
 
 abstract class LayoutComponent extends PositionComponent {
@@ -10,15 +11,15 @@ abstract class LayoutComponent extends PositionComponent {
     required super.priority,
     super.children,
   }) : _layoutSize = size == null
-            ? NullableVector2.blank()
-            : NullableVector2.fromVector2(size) {
-    // layoutSize.addListener(resetSize);
+            ? NotifyingNullableVector2.blank()
+            : NotifyingNullableVector2.fromVector2(size) {
+    layoutSize.addListener(resetSize);
     resetSize();
   }
 
-  final NullableVector2 _layoutSize;
+  final NotifyingNullableVector2 _layoutSize;
 
-  NullableVector2 get layoutSize => _layoutSize;
+  NotifyingNullableVector2 get layoutSize => _layoutSize;
 
   /// Clobbers current [_layoutSize]. Avoid using within layout logic.
   /// Instead, use [setLayoutAxisLength], as it allows selective setting of
@@ -26,7 +27,6 @@ abstract class LayoutComponent extends PositionComponent {
   /// size components.
   set layoutSize(NullableVector2? newLayoutSize) {
     _layoutSize.setFrom(newLayoutSize);
-    resetSize();
   }
 
   /// A helper function to set the appropriate layout dimension based on
@@ -43,18 +43,18 @@ abstract class LayoutComponent extends PositionComponent {
   /// triggered when either height/width are set, when we need things to happen
   /// *only* when height or width are set. Current functionality results in
   /// a race condition.
-  void setLayoutAxisLength(int axisIndex, double? value) {
-    switch (axisIndex) {
-      case 0:
-        _layoutSize.x = value;
-        width = _layoutSize.x ?? intrinsicSize.x;
-      case 1:
-        _layoutSize.y = value;
-        height = _layoutSize.y ?? intrinsicSize.y;
-      default:
-        throw Exception('Unsupported axisIndex: $axisIndex');
-    }
-  }
+  // void setLayoutAxisLength(int axisIndex, double? value) {
+  //   switch (axisIndex) {
+  //     case 0:
+  //       _layoutSize.x = value;
+  //       width = _layoutSize.x ?? intrinsicSize.x;
+  //     case 1:
+  //       _layoutSize.y = value;
+  //       height = _layoutSize.y ?? intrinsicSize.y;
+  //     default:
+  //       throw Exception('Unsupported axisIndex: $axisIndex');
+  //   }
+  // }
 
   /// Reset the size of this [LayoutComponent] to either the layout dimensions
   /// or the [intrinsicSize].
@@ -83,9 +83,6 @@ abstract class LayoutComponent extends PositionComponent {
   /// The method to refresh the layout, triggered by various events.
   /// (e.g. [onChildrenChanged], size changes on both this component and its
   /// children)
-  ///
-  /// By default, simply sets [size] to null, which sets [size] to
-  /// [intrinsicSize] under the hood.
   ///
   /// Override this method for any specific layout needs.
   void layoutChildren();

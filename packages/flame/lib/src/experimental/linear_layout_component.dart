@@ -302,10 +302,38 @@ abstract class LinearLayoutComponent extends LayoutComponent {
     for (final expandedComponent in expandedComponents) {
       if (expandedComponent.layoutSize[mainAxisVectorIndex] !=
           spacePerExpandedComponent) {
-        expandedComponent.setLayoutAxisLength(
-          mainAxisVectorIndex,
-          spacePerExpandedComponent,
-        );
+        // expandedComponent.setLayoutAxisLength(
+        //   mainAxisVectorIndex,
+        //   spacePerExpandedComponent,
+        // );
+
+        expandedComponent.layoutSize
+            .setValueSilently(mainAxisVectorIndex, spacePerExpandedComponent);
+
+        if (expandedComponent.key == ComponentKey.named('bob')) {
+          // This print statement shows the ExpandedComponent fluctuating in
+          // size despite using [setValueSilently]. This is likely because
+          // setting the grandchild's size "noisily" triggers the child resize
+          // listener, which resizes ExpandedComponent prematurely.
+          // We can't just use [setValueSilently] on the grandchild, because
+          // grandChild doesn't get sized again.
+          print(
+              "bob: $expandedComponent ${expandedComponent.layoutSize} ${expandedComponent.child}");
+        }
+        // Have to set grandchild size directly from here because now there's
+        // no way for a method within [ExpandedComponent] to set its own child's
+        // size in a specific dimension.
+        final grandChild = expandedComponent.child;
+        if (expandedComponent.inflateChild && grandChild != null) {
+          if (grandChild is LayoutComponent) {
+            grandChild.layoutSize.setValueSilently(
+              mainAxisVectorIndex,
+              spacePerExpandedComponent,
+            );
+          } else {
+            grandChild.size[mainAxisVectorIndex] = spacePerExpandedComponent;
+          }
+        }
       }
     }
   }
@@ -388,11 +416,22 @@ abstract class LinearLayoutComponent extends LayoutComponent {
       if (component is LayoutComponent) {
         // Don't set value if the value is already correct.
         if (component.layoutSize[crossAxisVectorIndex] != crossAxisLength) {
-          // component.layoutSize[crossAxisVectorIndex] = crossAxisLength;
-          component.setLayoutAxisLength(
-            crossAxisVectorIndex,
-            crossAxisLength,
-          );
+          // No need to use [layoutSize.setValueSilently] because we're at the
+          // crossAxisSizing stage, which is the final sizing stage.
+          component.layoutSize[crossAxisVectorIndex] = crossAxisLength;
+        }
+        // We're only attempting this because we used [setValueSilently] on the
+        // grandChild's layoutSize in mainAxisSizing. Somehow, this results in
+        // an infinite loop anyway.
+        if (component is ExpandedComponent) {
+          final grandChild = component.child;
+          if (component.inflateChild && grandChild != null) {
+            if (grandChild is LayoutComponent) {
+              grandChild.layoutSize[crossAxisVectorIndex] = crossAxisLength;
+            } else {
+              grandChild.size[crossAxisVectorIndex] = crossAxisLength;
+            }
+          }
         }
       } else {
         // Don't set value if the value is already correct.
